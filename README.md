@@ -7,4 +7,4 @@ The deliverables are:
 - Demonstrated functionality
 - What RPM can we hit in the parallel asynchronous execution, and what is the optimal parallelism?
 - What is the error rate?
-- Do we need to change the system prompt or the API call parameters to achieve higher success rate? We cannot change the user questions.
+- Do we need to change the system prompt or the API call parameters to achieve higher success rate, without changeing the user questions?
