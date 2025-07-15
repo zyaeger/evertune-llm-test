@@ -1,6 +1,6 @@
 This small repo is a sample of our integration with a LLM Vendor. Your task is to implement integration with {vendor} hosted {model} by deriving {vendor}_{model_shortname}_call.Model from the class llm_call.LLM, and implementing it's functionality.
 
-To test, copy file tests/test_together_llama.py to tests/test_{vendor}_{model_shortname}.py, replace the code with calls to Claude, and record the results.
+To test, copy file tests/test_together_llama.py to tests/test_{vendor}_{model_shortname}.py, replace the code with calls to {model_shortname}, and record the results.
 
 The deliverables are:
 
