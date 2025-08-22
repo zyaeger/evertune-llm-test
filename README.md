@@ -1,6 +1,6 @@
 This small repo is a sample of our integration with a LLM Vendor. Your task is to implement integration with Amazon Bedrock hosted Claude 4 Sonnet by deriving bedrock_claude4_call.Model from the class llm_call.LLM, and implementing it's functionality.
 
-To test, copy file tests/test_together_llama.py to tests/test_bedrock_claude3.py, replace the code with calls to claude3, and record the results. (hint: make sure your zone is set to us-east-2 and append "us." to the start of the bedrock model string)
+To test, copy file tests/test_together_llama.py to tests/test_bedrock_claude4.py, replace the code with calls to claude4, and record the results. (hint: make sure your zone is set to us-east-2 and append "us." to the start of the bedrock model string)
 
 The deliverables are:
 
