@@ -1,6 +1,6 @@
-This small repo is a sample of our integration with a LLM Vendor. Your task is to implement integration with Amazon Bedrock hosted Claude 4 Sonnet by deriving bedrock_claude4_call.Model from the class llm_call.LLM, and implementing it's functionality.
+This small repo is a sample of our integration with a LLM Vendor. Your task is to implement integration with Google Vertex hosted gemini 2.5 flash by deriving gemini_call.Model from the class llm_call.LLM, and implementing it's functionality.
 
-To test, copy file tests/test_together_llama.py to tests/test_bedrock_claude4.py, replace the code with calls to claude4, and record the results. (hint: make sure your zone is set to us-east-2 and append "us." to the start of the bedrock model string)
+To test, copy file tests/test_together_llama.py to tests/test_gemini_2_5_flash.py, replace the code with calls to gemini, and record the results.(you will need yo download and install the gcp cli and configure it to the project evertune-tests and location us-central1
 
 The deliverables are:
 
