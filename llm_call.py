@@ -13,7 +13,7 @@ class LLM:
 
     @dataclass
     class Response:
-        answers: [str]
+        answers: list[str]
         input_tokens: int
         output_tokens: int
 

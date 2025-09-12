@@ -1,2 +1,5 @@
 pytest-asyncio==0.24.0
 asyncio~=3.4.3
+
+# Vertex AI deprecated in favor of Gen AI
+google-genai==1.36.0

@@ -1,5 +1,6 @@
 import math
 import random
+
 import together
 from together import AsyncTogether
 from dotenv import dotenv_values
@@ -23,7 +24,7 @@ EMPTY_ANSWER = LLM.SimpleResponse(answer='', probability=None, input_tokens=0, o
 
 class Model(LLM):
     def __init__(self):
-        self.__client = AsyncTogether(api_key=dotenv_values('.secrets')['TOGETHER_API_KEY'])
+        self.__client = AsyncTogether(api_key=dotenv_values('./tests/.secrets')['TOGETHER_API_KEY'])
 
     @staticmethod
     def list_models() -> list[str]:
