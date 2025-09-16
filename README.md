@@ -1,15 +1,4 @@
-This small repo is a sample of our integration with a LLM Vendor. Your task is to implement integration with Google Vertex hosted gemini 2.5 flash by deriving gemini_call.Model from the class llm_call.LLM, and implementing it's functionality.
-
-To test, copy file tests/test_together_llama.py to tests/test_gemini_2_5_flash.py, replace the code with calls to gemini, and record the results.(you will need yo download and install the gcp cli and configure it to the project evertune-tests and location us-central1
-
-The deliverables are:
-
-Demonstrated functionality
-What RPM can we hit in the parallel asynchronous execution, and what is the optimal parallelism?
-What is the error rate?
-Do we need to change the system prompt or the API call parameters to achieve higher success rate, without changeing the user questions?
-
-### Findings
+# Findings
 
 > What RPM can we hit in the parallel asynchronous execution, and what is the optimal parallelism?
 
@@ -28,7 +17,7 @@ Range Rover, Land Rover, Range Rover (Land Rover), and Land Rover (Range Rover).
 
 By specifying to the model that we were ranking brands, not products, the output was cleaned up significantly, with _one_ exception: Range Rover/Land Rover. Although the parenthesized brands had mostly disappeared, both were still present in the responses, so much so that Land Rover was ranked 1st, and Range Rover 2nd or 3rd, depending on the run.
 
-#### Before System Prompt Change
+## Before System Prompt Change
 
 | Brand                               |    #1 |    #2 |    #3 |    #4 |    #5 |
 |-------------------------------------|-------|-------|-------|-------|-------|
@@ -86,7 +75,7 @@ By specifying to the model that we were ranking brands, not products, the output
 | Land Rover (Range Rover SV)         |     0 |     0 |     0 |     0 |     1 |
 | Mercedes-Benz AMG G-Class           |     0 |     0 |     0 |     0 |     1 |
 
-#### After System Prompt Change
+## After System Prompt Change
 
 | Brand                    |    #1 |    #2 |    #3 |    #4 |    #5 |
 |--------------------------|-------|-------|-------|-------|-------|
@@ -107,7 +96,7 @@ By specifying to the model that we were ranking brands, not products, the output
 (As you can see, the "Land Rover (Range Rover)" problem showed its face.)
 The different prompts used are in `constants.py`, the original is commented out.
 
-#### Messing with the Thermostat
+## Messing with the Thermostat
 
 Now, as for API Parameters. I wanted to see how decreasing temperature (randomness) would effect the results. I turned it all the way down to 0, and something interesting happened:
 
