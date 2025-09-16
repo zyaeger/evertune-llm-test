@@ -20,11 +20,10 @@ async def test_choice():
 async def test_choices_at_scale():
     model = Gemini()
     iterations = model.parallelism() * 2
-    start_time = time.perf_counter()
     counter = [0]
     stats = {"Bad": 0}
 
-    async def run_calls(loop):
+    async def run_calls(_):
         while counter[0] < iterations:
             counter[0] += 1
             choice = await model.choice_from_pair(
@@ -41,20 +40,21 @@ async def test_choices_at_scale():
             else:
                 stats[answer] = stats[answer] + 1
 
+    start_time = time.perf_counter()
     await asyncio.gather(*[run_calls(i) for i in range(0, model.parallelism())])
-    results = sorted(
-        [(k, v) for k, v in stats.items()], key=lambda k: k[1], reverse=True
-    )
+    results = sorted(list(stats.items()), key=lambda k: k[1], reverse=True)
     elapsed_time = time.perf_counter() - start_time
     print(
         f"\nfinished {iterations} -> {len(results)} calls in {elapsed_time:.2f} seconds"
     )
+    print(f"Requests per Minute: {iterations / (elapsed_time / 60):.2f}")
     print("\n".join(f"{s}: {n}" for (s, n) in results))
 
 
 @pytest.mark.asyncio
 async def test_list_stats():
-    iterations = 10
+    model = Gemini()
+    iterations = model.parallelism()
     questions = [
         "Which [insert written number] brands stand out to you the most in [insert product category]?",
         "When you hear [insert product category], which [insert written number] brands immediately come to your mind?",
@@ -64,10 +64,10 @@ async def test_list_stats():
     number = 5
     category = "Luxury SUVs"
     total_rounds = [iterations * len(questions)]
-    model = Gemini()
     stats = {}
+    bad_responses = 0
 
-    async def run_calls(loop):
+    async def run_calls(_):
         while total_rounds[0] > 0:
             qq = (
                 questions[total_rounds[0] % len(questions)]
@@ -76,6 +76,8 @@ async def test_list_stats():
             )
             total_rounds[0] -= 1
             answers = await model.ask_for_list(number, qq, "", 0.9)
+            if not answers.answers:
+                bad_responses += 1
             for i, answer in enumerate(answers.answers):
                 assert i < number
                 stats.setdefault(answer, [0 for _ in range(0, number)])
@@ -90,14 +92,18 @@ async def test_list_stats():
         f"\nfinished {iterations} -> {iterations*len(questions)} calls in {elapsed_time:.2f} seconds"
     )
     print(
+        f"Requests per Minute: {iterations*len(questions) / (elapsed_time / 60):.2f}"
+    )
+    print(f"Bad responses: {bad_responses}")
+    print(
         tabulate(
             [
                 [s] + n
                 for s, n in sorted(
-                    [(s, n) for s, n in stats.items()], key=lambda k: k[1], reverse=True
+                    list(stats.items()), key=lambda k: k[1], reverse=True
                 )
             ],
             headers=["Brand"] + [f"#{i + 1}" for i in range(0, number)],
-            tablefmt="presto",
+            tablefmt="github", # Changed to `github` for README
         )
     )

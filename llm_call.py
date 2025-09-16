@@ -1,10 +1,10 @@
-import asyncio
 import json
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from math import sqrt
 
 
-class LLM:
+class LLM(ABC):
     @dataclass
     class SimpleResponse:
         answer: str
@@ -35,50 +35,79 @@ class LLM:
             input_tokens: int
             output_tokens: int
 
-        conversation: dict[int, Answer] = field(default_factory=dict[int, Answer])
+        conversation: dict[int, Answer] = field(
+            default_factory=dict[int, Answer]
+        )
         input_tokens: int = 0
         output_tokens: int = 0
 
-        def add(self, answer: Answer):
+        def add(self, answer: Answer) -> None:
             self.conversation[answer.ordinal] = answer
             self.input_tokens += answer.input_tokens
             self.output_tokens += answer.output_tokens
 
     @property
-    def computed_model_name(self):
-        raise NotImplementedError()
+    def computed_model_name(self) -> str:
+        pass
 
+    @abstractmethod
     async def ask_for_list(
-        self, choices: int, question: str, safe_answer: str, temperature: float | None
+        self,
+        choices: int,
+        question: str,
+        safe_answer: str,
+        temperature: float | None,
     ) -> Response:
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     async def conversation(
         self, questions: list[str], temperature: float | None
     ) -> Conversation:
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     async def ask_generic_question(
-        self, system_prompt: str, question: str, temperature: float, is_json: bool
+        self,
+        system_prompt: str,
+        question: str,
+        temperature: float,
+        is_json: bool,
     ) -> SimpleResponse:
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     async def ask_for_open_list(
         self, system_prompt: str, question: str, temperature: float
     ) -> Response:
-        result = await self.ask_generic_question(
-            system_prompt, question, temperature, is_json=True
-        )
-        return self.Response(
-            answers=self.parse_json_ranked_list(result.answer),
-            input_tokens=result.input_tokens,
-            output_tokens=result.output_tokens,
-        )
+        pass
 
+    @abstractmethod
     async def ask_for_ranked_list(
         self, system_prompt: str, question: str, temperature: float
     ) -> Response:
-        return await self.ask_for_open_list(system_prompt, question, temperature)
+        pass
+
+    @abstractmethod
+    async def ask_generic_question_with_retries(
+        self,
+        system_prompt: str,
+        question: str,
+        temperature: float,
+        is_json: bool,
+        max_retries: int = 10,
+    ) -> SimpleResponse:
+        pass
+
+    @abstractmethod
+    async def choice_from_pair(
+        self,
+        question: str,
+        temperature: float,
+        max_iterations: int,
+        system_prompt=None,
+    ) -> Choice:
+        pass
 
     @staticmethod
     def clean_reply(text: str) -> str:
@@ -96,24 +125,32 @@ class LLM:
         return {"gpt-3.5-turbo", "gpt-4", "gemini-pro"}
 
     @staticmethod
-    def report_models():
+    def report_models() -> list[str]:
         return ["gpt-3.5-turbo", "gpt-4", "gemini-pro"]
 
-    def parallelism(self):
+    def parallelism(self) -> int:
         return 1
 
     @property
-    def has_logprob(self):
+    def has_logprob(self) -> bool:
         return True
 
     @staticmethod
-    def parse_json_ranked_list(text: str):
-        json_data = text.strip("` \n")
-        if json_data.startswith("json"):
-            json_data = json_data[4:]
-        the_dict: dict[str, int] = json.loads(json_data)
-        the_list = sorted([(n, v) for n, v in the_dict.items()], key=lambda k: k[1])
-        answers = [a[0] for a in the_list]
+    def parse_json_ranked_list(text: str) -> list[str]:
+        output = json.loads(text)
+        choices = list(output["choices"].items())
+        if (
+            (
+                not all(isinstance(c[0], str) for c in choices)
+                or not all(isinstance(c[1], int) for c in choices)
+            )
+            or not all(0 <= c[1] <= len(choices) for c in choices)
+            or any(c[0] in {str(i) for i in range(0, 20)} for c in choices)
+        ):
+            print(f"Ignoring answer from LLM: {text}")
+            return []
+
+        answers = [k for k, _ in sorted(choices, key=lambda k: k[1])]
         return answers
 
     @staticmethod
@@ -128,35 +165,3 @@ class LLM:
                     return 1.96 * sqrt((p * (1 - p)) / n)
         except ValueError:
             return 0.0
-
-    async def ask_generic_question_with_retries(
-        self,
-        system_prompt: str,
-        question: str,
-        temperature: float,
-        is_json: bool,
-        max_retries: int = 10,
-    ):
-        for retry in range(0, max_retries):
-            try:
-                return await self.ask_generic_question(
-                    system_prompt, question, temperature, is_json
-                )
-            except Exception as ex:
-                if retry == max_retries - 1:
-                    print(f"No more retries for {self.computed_model_name}: {ex}")
-                    raise ex
-
-                wait = pow(2, retry)
-                print(
-                    f"Waiting {wait} seconds for {self.computed_model_name} to avoid {ex}"
-                )
-                await asyncio.sleep(wait)
-
-    async def choice_from_pair(
-        self, question: str, temperature: float, max_iterations: int, system_prompt=None
-    ):
-        system_prompt = "In one word answer the following question"
-        return await self.ask_generic_question_with_retries(
-            system_prompt, question, temperature, False
-        )

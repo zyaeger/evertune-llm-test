@@ -1,10 +1,16 @@
-import asyncio
+import math
 
 from dotenv import load_dotenv
 from google import genai
 from google.genai import errors, types
 
-from constants import RANKED_LIST_SYS_PROMPT, CHOICE_SYS_PROMPT, Choices
+from constants import (
+    CHOICE_SYS_PROMPT,
+    EMPTY_ANSWER,
+    EMPTY_LIST,
+    RANKED_LIST_SYS_PROMPT,
+    Choices,
+)
 from llm_call import LLM
 
 
@@ -12,14 +18,9 @@ SUPPORTED_MODEL = "gemini-2.5-flash"
 
 load_dotenv()
 
-EMPTY_LIST = LLM.Response(answers=[], input_tokens=0, output_tokens=0)
-EMPTY_ANSWER = LLM.SimpleResponse(
-    answer="", probability=None, input_tokens=0, output_tokens=0
-)
-
 
 class Model(LLM):
-    def __init__(self):
+    def __init__(self) -> None:
         self.__client = genai.Client(
             http_options=types.HttpOptions(
                 api_version="v1",
@@ -32,12 +33,18 @@ class Model(LLM):
         return SUPPORTED_MODEL
 
     def parallelism(self) -> int:
-        return 1000
+        return 15000
 
     async def ask_for_list(
-        self, choices: int, question: str, safe_answer: str, temperature: float | None
+        self,
+        choices: int,
+        question: str,
+        safe_answer: str,
+        temperature: float | None,
     ) -> LLM.Response:
-        result = await self.ask_for_ranked_list(RANKED_LIST_SYS_PROMPT, question, temperature)
+        result = await self.ask_for_ranked_list(
+            RANKED_LIST_SYS_PROMPT, question, temperature
+        )
         if len(result.answers) > choices:
             print(
                 f'Ignoring extra {len(result.answers) - choices} choices in Gemini: {",".join(result.answers)}'
@@ -52,31 +59,32 @@ class Model(LLM):
             model=SUPPORTED_MODEL,
             config=types.GenerateContentConfig(
                 temperature=temperature,
-                response_logprobs=True,
-                logprobs=1,
-            )
+            ),
         )
         conversation = LLM.Conversation()
-        for idx, q in enumerate(questions):
-            try:
+        try:
+            for i, q in enumerate(questions):
                 response = await chat.send_message(q)
                 answer = conversation.Answer(
-                    ordinal=idx,
+                    ordinal=i,
                     question=q,
-                    answers=[part.text for part in response.candidates[0].content.parts],
+                    answers=[part.text for part in response.parts],
                     input_tokens=response.usage_metadata.prompt_token_count,
                     output_tokens=response.usage_metadata.candidates_token_count,
                 )
                 conversation.add(answer)
-            except errors.APIError as exc:
-                print(f"Error in Gemini:", exc)
-                continue
-        
+        except errors.APIError as exc:
+            print("Error in Gemini chat:", exc)
+            return LLM.Conversation()
+
         return conversation
 
-
     async def ask_generic_question(
-        self, system_prompt: str, question: str, temperature: float, is_json: bool
+        self,
+        system_prompt: str,
+        question: str,
+        temperature: float,
+        is_json: bool,
     ) -> LLM.SimpleResponse:
         logprobs = 1 if not is_json else 0
         try:
@@ -87,7 +95,7 @@ class Model(LLM):
                     config=types.GenerateContentConfig(
                         system_instruction=system_prompt,
                         temperature=temperature,
-                        response_logprobs=True,
+                        response_logprobs=self.has_logprob,
                         logprobs=logprobs,
                         response_mime_type="text/plain",
                     ),
@@ -99,7 +107,7 @@ class Model(LLM):
                     config=types.GenerateContentConfig(
                         system_instruction=system_prompt,
                         temperature=temperature,
-                        response_logprobs=True,
+                        response_logprobs=self.has_logprob,
                         logprobs=logprobs,
                         response_mime_type="application/json",
                         response_json_schema=Choices.model_json_schema(),
@@ -107,7 +115,11 @@ class Model(LLM):
                 )
             return LLM.SimpleResponse(
                 answer=response.text,
-                probability=response.candidates[0].logprobs_result,
+                probability=math.exp(
+                    response.candidates[0]
+                    .logprobs_result.chosen_candidates[0]
+                    .log_probability
+                ),
                 input_tokens=response.usage_metadata.prompt_token_count,
                 output_tokens=response.usage_metadata.candidates_token_count,
             )
@@ -115,50 +127,38 @@ class Model(LLM):
             print(f"Error in Gemini: {exc}")
             return EMPTY_ANSWER
 
+    # pylint: disable=broad-exception-caught
     async def ask_for_open_list(
         self, system_prompt: str, question: str, temperature: float
     ) -> LLM.Response:
         result = await self.ask_generic_question(
             system_prompt, question, temperature, is_json=True
         )
-        return self.Response(
-            answers=self.parse_json_ranked_list(result.answer),
-            input_tokens=result.input_tokens,
-            output_tokens=result.output_tokens,
-        )
+        try:
+            answers = self.parse_json_ranked_list(result.answer)
+            return self.Response(
+                answers=answers,
+                input_tokens=result.input_tokens,
+                output_tokens=result.output_tokens,
+            )
+        except Exception as ex:
+            print("Error when parsing json response:", ex)
+            return EMPTY_LIST
 
     async def ask_for_ranked_list(
         self, system_prompt: str, question: str, temperature: float
     ) -> LLM.Response:
-        return await self.ask_for_open_list(system_prompt, question, temperature)
-
-    # async def ask_generic_question_with_retries(
-    #     self,
-    #     system_prompt: str,
-    #     question: str,
-    #     temperature: float,
-    #     is_json: bool,
-    #     max_retries: int = 10,
-    # ):
-    #     for retry in range(0, max_retries):
-    #         try:
-    #             return await self.ask_generic_question(
-    #                 system_prompt, question, temperature, is_json
-    #             )
-    #         except Exception as ex:
-    #             if retry == max_retries - 1:
-    #                 print(f"No more retries for {self.computed_model_name}: {ex}")
-    #                 raise ex
-
-    #             wait = pow(2, retry)
-    #             print(
-    #                 f"Waiting {wait} seconds for {self.computed_model_name} to avoid {ex}"
-    #             )
-    #             await asyncio.sleep(wait)
+        return await self.ask_for_open_list(
+            system_prompt, question, temperature
+        )
 
     async def choice_from_pair(
-        self, question: str, temperature: float, max_iterations: int, system_prompt=None
-    ):
+        self,
+        question: str,
+        temperature: float,
+        max_iterations: int,
+        system_prompt=None,
+    ) -> LLM.Choice:
         if not system_prompt:
             system_prompt = CHOICE_SYS_PROMPT
 
@@ -171,6 +171,13 @@ class Model(LLM):
             input_tokens=result.input_tokens,
             output_tokens=result.output_tokens,
         )
+
+    async def ask_generic_question_with_retries(
+        self, system_prompt, question, temperature, is_json, max_retries=10
+    ) -> LLM.SimpleResponse:
+        # Gemini SDK supports retry_options in config
+        # We can set retry limits at the client level
+        pass
 
     @staticmethod
     def known_models() -> set[str]:

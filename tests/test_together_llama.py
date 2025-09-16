@@ -24,7 +24,7 @@ async def test_choices_at_scale():
     counter = [0]
     stats = {"Bad": 0}
 
-    async def run_calls(loop):
+    async def run_calls(_):
         while counter[0] < iterations:
             counter[0] += 1
             choice = await model.choice_from_pair(
@@ -42,9 +42,7 @@ async def test_choices_at_scale():
                 stats[answer] = stats[answer] + 1
 
     await asyncio.gather(*[run_calls(i) for i in range(0, model.parallelism())])
-    results = sorted(
-        [(k, v) for k, v in stats.items()], key=lambda k: k[1], reverse=True
-    )
+    results = sorted(list(stats.items()), key=lambda k: k[1], reverse=True)
     elapsed_time = time.perf_counter() - start_time
     print(
         f"\nfinished {iterations} -> {len(results)} calls in {elapsed_time:.2f} seconds"
@@ -67,7 +65,7 @@ async def test_list_stats():
     model = TLlama()
     stats = {}
 
-    async def run_calls(loop):
+    async def run_calls(_):
         while total_rounds[0] > 0:
             qq = (
                 questions[total_rounds[0] % len(questions)]
@@ -94,7 +92,7 @@ async def test_list_stats():
             [
                 [s] + n
                 for s, n in sorted(
-                    [(s, n) for s, n in stats.items()], key=lambda k: k[1], reverse=True
+                    list(stats.items()), key=lambda k: k[1], reverse=True
                 )
             ],
             headers=["Brand"] + [f"#{i + 1}" for i in range(0, number)],

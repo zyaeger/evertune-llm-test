@@ -1,3 +1,4 @@
+import asyncio
 import math
 import random
 
@@ -5,19 +6,18 @@ import together
 from together import AsyncTogether
 from dotenv import dotenv_values
 
-from constants import RANKED_LIST_SYS_PROMPT, CHOICE_SYS_PROMPT, Choices
-from llm_call import *
+from constants import (
+    EMPTY_ANSWER,
+    EMPTY_LIST,
+    CHOICE_SYS_PROMPT,
+    RANKED_LIST_SYS_PROMPT,
+    Choices,
+)
+from llm_call import LLM
 
 SUPPORTED_MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
 SUPPORTED_MODEL_INTERNAL_NAME = "llama-3.1-70B"
 SUPPORTED_MODEL_DISPLAY_NAME = "Llama-3.1"
-
-
-NUMBERS_TO_REJECT = {str(i) for i in range(0, 20)}
-EMPTY_LIST = LLM.Response(answers=[], input_tokens=0, output_tokens=0)
-EMPTY_ANSWER = LLM.SimpleResponse(
-    answer="", probability=None, input_tokens=0, output_tokens=0
-)
 
 
 class Model(LLM):
@@ -45,8 +45,13 @@ class Model(LLM):
     def has_logprob(self):
         return True
 
+    # pylint: disable=broad-exception-caught
     async def ask_generic_question(
-        self, system_prompt: str, question: str, temperature: float, is_json: bool
+        self,
+        system_prompt: str,
+        question: str,
+        temperature: float,
+        is_json: bool,
     ) -> LLM.SimpleResponse:
         logprobs = 1 if not is_json else 0
         for retry in range(0, 10):
@@ -76,6 +81,7 @@ class Model(LLM):
                         },
                     )
 
+                # pylint: disable=fixme
                 return LLM.SimpleResponse(
                     answer=response.choices[0].message.content,
                     probability=self.extract_logprobs(response),
@@ -98,6 +104,7 @@ class Model(LLM):
                 print(f"Error in Llama on Together: {ex}")
                 return EMPTY_ANSWER
 
+    # pylint: disable=broad-exception-caught
     async def ask_for_open_list(
         self, system_prompt: str, question: str, temperature: float
     ) -> LLM.Response:
@@ -105,24 +112,15 @@ class Model(LLM):
             system_prompt, question, temperature, True
         )
         try:
-            output = json.loads(response.answer)
-            choices = [(k, v) for k, v in output["choices"].items()]
-            if (
-                (
-                    not all(type(c[0]) is str for c in choices)
-                    or not all(type(c[1]) is int for c in choices)
-                )
-                or not all(0 <= c[1] <= len(choices) for c in choices)
-                or any(c[0] in NUMBERS_TO_REJECT for c in choices)
-            ):
-                print(f"Ignoring answer from together_llama: {response.answer}")
-                return EMPTY_LIST
-
-            answers = [k for k, _ in sorted(choices, key=lambda k: k[1])]
-            return LLM.Response(answers=answers, input_tokens=0, output_tokens=0)
+            answers = self.parse_json_ranked_list(response.answer)
+            return LLM.Response(
+                answers=answers, input_tokens=0, output_tokens=0
+            )
 
         except Exception as ex:
-            print(f'Error in Together.ask_for_open_list "{response.answer}": {ex} ')
+            print(
+                f'Error in Together.ask_for_open_list "{response.answer}": {ex} '
+            )
             return EMPTY_LIST
 
     async def ask_for_ranked_list(
@@ -133,7 +131,11 @@ class Model(LLM):
         )
 
     async def ask_for_list(
-        self, choices: int, question: str, safe_answer: str, temperature: float | None
+        self,
+        choices: int,
+        question: str,
+        safe_answer: str,
+        temperature: float | None,
     ) -> LLM.Response:
         result = await self.ask_for_ranked_list(
             RANKED_LIST_SYS_PROMPT, question, temperature
@@ -146,7 +148,11 @@ class Model(LLM):
         return result
 
     async def choice_from_pair(
-        self, question: str, temperature: float, max_iterations: int, system_prompt=None
+        self,
+        question: str,
+        temperature: float,
+        max_iterations: int,
+        system_prompt=None,
     ) -> LLM.Choice:
         result = await self.ask_generic_question(
             CHOICE_SYS_PROMPT, question, temperature, False
@@ -158,12 +164,21 @@ class Model(LLM):
             output_tokens=result.output_tokens,
         )
 
+    async def ask_generic_question_with_retries(
+        self, system_prompt, question, temperature, is_json, max_retries=10
+    ):
+        pass
+
+    async def conversation(self, questions, temperature) -> LLM.Conversation:
+        return LLM.Conversation()
+
     @staticmethod
     def order_models(models: list[str]):
         if SUPPORTED_MODEL_INTERNAL_NAME in models:
             return [SUPPORTED_MODEL_INTERNAL_NAME]
         return []
 
+    # pylint: disable=unused-argument
     @staticmethod
     def display_name(model: str) -> str:
         return SUPPORTED_MODEL_DISPLAY_NAME
