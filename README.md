@@ -13,11 +13,11 @@ Do we need to change the system prompt or the API call parameters to achieve hig
 
 > What RPM can we hit in the parallel asynchronous execution, and what is the optimal parallelism?
 
-I was able to achieve upwards of 40k RPM, with a range of 10k-20k parallelism, with closer to 15k being the "sweet spot".
+I was able to achieve upwards of 40k RPM, the general range being 25k-35k, with a parallelism range of 10k-20k calls, and 15k seemed to be the "sweet spot".
 
 > What is the error rate?
 
-In terms of "bad data" being returned or certain errors being handled, the error rate is virtually 0. In terms of errors happening that were not handled, I got throttling errors in about 5% of tests, growing as the parallelism I tested grew past 20k.
+In terms of "bad data" being returned or certain errors being handled, the error rate is virtually 0. In terms of errors happening that were not handled, I got throttling errors in about 5% of tests, growing as the parallelism I tested grew past 20k (and as I tested more frequently).
 
 > Do we need to change the system prompt or the API call parameters to achieve higher success rate, without changeing the user questions?
 
@@ -28,7 +28,7 @@ Range Rover, Land Rover, Range Rover (Land Rover), and Land Rover (Range Rover).
 
 By specifying to the model that we were ranking brands, not products, the output was cleaned up significantly, with _one_ exception: Range Rover/Land Rover. Although the parenthesized brands had mostly disappeared, both were still present in the responses, so much so that Land Rover was ranked 1st, and Range Rover 2nd or 3rd, depending on the run.
 
-#### Before
+#### Before System Prompt Change
 
 | Brand                               |    #1 |    #2 |    #3 |    #4 |    #5 |
 |-------------------------------------|-------|-------|-------|-------|-------|
@@ -86,7 +86,7 @@ By specifying to the model that we were ranking brands, not products, the output
 | Land Rover (Range Rover SV)         |     0 |     0 |     0 |     0 |     1 |
 | Mercedes-Benz AMG G-Class           |     0 |     0 |     0 |     0 |     1 |
 
-#### After
+#### After System Prompt Change
 
 | Brand                    |    #1 |    #2 |    #3 |    #4 |    #5 |
 |--------------------------|-------|-------|-------|-------|-------|
@@ -107,7 +107,38 @@ By specifying to the model that we were ranking brands, not products, the output
 (As you can see, the "Land Rover (Range Rover)" problem showed its face.)
 The different prompts used are in `constants.py`, the original is commented out.
 
-I did not mention changing API parameters....
+#### Messing with the Thermostat
+
+Now, as for API Parameters. I wanted to see how decreasing temperature (randomness) would effect the results. I turned it all the way down to 0, and something interesting happened:
+
+| Brand         |    #1 |    #2 |    #3 |    #4 |    #5 |
+|---------------|-------|-------|-------|-------|-------|
+| Mercedes-Benz | 30465 | 29535 |     0 |     0 |     0 |
+| Land Rover    | 29535 |     0 | 15915 | 14550 |     0 |
+| BMW           |     0 | 30465 | 29535 |     0 |     0 |
+| Audi          |     0 |     0 | 14550 | 15470 |     0 |
+| Lexus         |     0 |     0 |     0 | 15450 | 30512 |
+| Porsche       |     0 |     0 |     0 | 14530 | 14530 |
+| Cadillac      |     0 |     0 |     0 |     0 | 14958 |
+
+The "Land Rover / Range Rover" issue _disappeared_. Not only that, it correctly identified Land Rover as the "brand" and removed Range Rover entirely. The trade-off here, as you can see, is that there is a much more clear distinction in the brand rankings, and we've lost some of those long-tail results that may be useful in later analysis. As another test, I moved the temperature to 0.5, to see if any randomness bring the issue back up, and it did, with both Rover "brands" appearing again, at 1st and 3rd on the list.
+
+| Brand         |    #1 |    #2 |    #3 |    #4 |    #5 |
+|---------------|-------|-------|-------|-------|-------|
+| Land Rover    | 34263 |  1071 |  5820 | 14070 |   236 |
+| Mercedes-Benz | 22649 | 36669 |   681 |     1 |     0 |
+| Range Rover   |  3044 |    39 |   410 |   975 |    47 |
+| Cadillac      |    28 |     0 |  1169 |   746 |  3585 |
+| BMW           |    14 | 21613 | 34858 |  2569 |   678 |
+| Rolls-Royce   |     2 |     0 |     0 |     0 |     5 |
+| Porsche       |     0 |   604 |  1726 | 16697 |  8622 |
+| Lexus         |     0 |     2 |     6 |  4144 | 42641 |
+| Bentley       |     0 |     2 |     1 |     8 |    90 |
+| Audi          |     0 |     0 | 15329 | 20790 |  4096 |
+
+And then, trying at temperature 0.1, Range Rover, for the most part, disappears again. I say "for the most part", because multiple runs flush out that it can still appear, albeit in much smaller "vote counts" than we see above.
+
+The exact temperature at which this issue disappears is TBD, but the "success" of this result depends on if you specifically only want brands, and not product lines. However, given that "Range Rover" is consistently high on the ranking, 2nd or 3rd in 1st place votes, this could skew data in a way that is invalidating (this assumes no algorithm is doing any post-processing on the LLM output to recognize that Land Rover and Range Rover belong together).
 
 ## Note
 

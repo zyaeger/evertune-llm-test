@@ -75,7 +75,7 @@ async def test_list_stats():
                 .replace("[insert product category]", category)
             )
             total_rounds[0] -= 1
-            answers = await model.ask_for_list(number, qq, "", 0.9)
+            answers = await model.ask_for_list(number, qq, "", 0.1)
             if not answers.answers:
                 bad_responses += 1
             for i, answer in enumerate(answers.answers):
