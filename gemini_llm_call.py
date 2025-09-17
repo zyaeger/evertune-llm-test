@@ -8,7 +8,7 @@ from constants import (
     CHOICE_SYS_PROMPT,
     EMPTY_ANSWER,
     EMPTY_LIST,
-    RANKED_LIST_SYS_PROMPT,
+    NEW_RANKED_LIST_SYS_PROMPT,
     Choices,
 )
 from llm_call import LLM
@@ -34,7 +34,7 @@ class Model(LLM):
 
     @property
     def parallelism(self) -> int:
-        return 15000
+        return 25000
 
     async def ask_for_list(
         self,
@@ -46,7 +46,7 @@ class Model(LLM):
         # Ideally, some logic here to determine ranked vs open list
         # and call accordingly
         result = await self.ask_for_ranked_list(
-            RANKED_LIST_SYS_PROMPT, question, temperature
+            NEW_RANKED_LIST_SYS_PROMPT, question, temperature
         )
         if len(result.answers) > choices:
             print(

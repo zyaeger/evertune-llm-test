@@ -2,7 +2,7 @@
 
 > What RPM can we hit in the parallel asynchronous execution, and what is the optimal parallelism?
 
-I was able to achieve upwards of 40k RPM, the general range being 25k-35k, with a parallelism range of 10k-20k calls, and 15k seemed to be the "sweet spot".
+I was able to achieve upwards of 40k RPM when asking for choices, and a max of 30k RPM for list. The general range being 25k-35k for both. Parallelism seems to be optimal around 10-30k, with generally better results at around 20-25k parallel calls.
 
 > What is the error rate?
 
@@ -93,7 +93,7 @@ By specifying to the model that we were ranking brands, not products, the output
 | Lamborghini              |     0 |     0 |    29 |     1 |    16 |
 | Aston Martin             |     0 |     0 |     0 |     6 |     3 |
 
-(As you can see, the "Land Rover (Range Rover)" problem showed its face.)
+(As you can see, the "Land Rover (Range Rover)" problem showed its face in this test.)
 The different prompts used are in `constants.py`, the original is commented out.
 
 I found similar problems with asking the LLM to make a single choice between two options. Occasionally, I received "Neither" or "Both" for a single response. This mainly had to do with the difference in questions between `test_choice` and `test_choices_at_scale`. The latter specifically stated to only choose one, whereas the former did not specify. Once I added this stipulation to the `CHOICE_SYS_PROMPT`, the non-answers stopped.

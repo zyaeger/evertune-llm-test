@@ -65,7 +65,7 @@ async def test_list_stats():
     category = "Luxury SUVs"
     total_rounds = [iterations * len(questions)]
     stats = {}
-    bad_responses = 0
+    bad_responses = [0]
 
     async def run_calls(_):
         while total_rounds[0] > 0:
@@ -77,7 +77,7 @@ async def test_list_stats():
             total_rounds[0] -= 1
             answers = await model.ask_for_list(number, qq, "", 0.1)
             if not answers.answers:
-                bad_responses += 1
+                bad_responses[0] += 1
             for i, answer in enumerate(answers.answers):
                 assert i < number
                 stats.setdefault(answer, [0 for _ in range(0, number)])
@@ -92,7 +92,7 @@ async def test_list_stats():
         f"\nfinished {iterations} -> {iterations*len(questions)} calls in {elapsed_time:.2f} seconds"
     )
     print(f"Requests per Minute: {iterations*len(questions) / (elapsed_time / 60):.2f}")
-    print(f"Bad responses: {bad_responses}")
+    print(f"Bad responses: {bad_responses[0]}")
     print(
         tabulate(
             [
