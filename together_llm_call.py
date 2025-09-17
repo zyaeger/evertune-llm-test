@@ -1,6 +1,7 @@
 import asyncio
 import math
 import random
+from typing import Any
 
 import together
 from together import AsyncTogether
@@ -179,7 +180,7 @@ class Model(LLM):
         return SUPPORTED_MODEL_DISPLAY_NAME
 
     @staticmethod
-    def extract_logprobs(completion) -> float | None:
+    def extract_logprobs(completion: Any) -> float | None:
         if (
             completion
             and completion.choices

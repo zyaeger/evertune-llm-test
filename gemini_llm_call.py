@@ -1,4 +1,5 @@
 import math
+from typing import Any
 
 from dotenv import load_dotenv
 from google import genai
@@ -118,11 +119,7 @@ class Model(LLM):
                 )
             return LLM.SimpleResponse(
                 answer=response.text,
-                probability=math.exp(
-                    response.candidates[0]
-                    .logprobs_result.chosen_candidates[0]
-                    .log_probability
-                ),
+                probability=self.extract_logprobs(response),
                 input_tokens=response.usage_metadata.prompt_token_count,
                 output_tokens=response.usage_metadata.candidates_token_count,
             )
@@ -178,7 +175,12 @@ class Model(LLM):
         )
 
     async def ask_generic_question_with_retries(
-        self, system_prompt, question, temperature, is_json, max_retries=10
+        self,
+        system_prompt: str,
+        question: str,
+        temperature: float,
+        is_json: bool,
+        max_retries: int = 10,
     ) -> LLM.SimpleResponse:
         # Gemini SDK supports retry_options in config
         # We can set retry limits at the client level
@@ -191,3 +193,21 @@ class Model(LLM):
     @staticmethod
     def report_models() -> list[str]:
         return [SUPPORTED_MODEL]
+
+    @staticmethod
+    def extract_logprobs(completion: Any) -> float | None:
+        if (
+            completion
+            and completion.candidates
+            and completion.candidates[0].logprobs_result
+            and completion.candidates[0].logprobs_result.chosen_candidates
+            and completion.candidates[0]
+            .logprobs_result.chosen_candidates[0]
+            .log_probability
+        ):
+            return math.exp(
+                completion.candidates[0]
+                .logprobs_result.chosen_candidates[0]
+                .log_probability
+            )
+        return None

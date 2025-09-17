@@ -2,6 +2,7 @@ import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from math import sqrt
+from typing import Any
 
 
 class LLM(ABC):
@@ -164,3 +165,8 @@ class LLM(ABC):
                     return 1.96 * sqrt((p * (1 - p)) / n)
         except ValueError:
             return 0.0
+
+    @staticmethod
+    @abstractmethod
+    def extract_logprobs(completion: Any) -> float | None:
+        pass
