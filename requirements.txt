@@ -3,3 +3,7 @@ asyncio~=3.4.3
 
 # Vertex AI deprecated in favor of Gen AI
 google-genai==1.36.0
+black==25.1.0
+pylint==3.3.8
+python-dotenv==1.1.1
+tabulate==0.9.0

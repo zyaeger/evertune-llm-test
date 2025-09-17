@@ -96,6 +96,8 @@ By specifying to the model that we were ranking brands, not products, the output
 (As you can see, the "Land Rover (Range Rover)" problem showed its face.)
 The different prompts used are in `constants.py`, the original is commented out.
 
+I found similar problems with asking the LLM to make a single choice between two options. Occasionally, I received "Neither" or "Both" for a single response. This mainly had to do with the difference in questions between `test_choice` and `test_choices_at_scale`. The latter specifically stated to only choose one, whereas the former did not specify. Once I added this stipulation to the `CHOICE_SYS_PROMPT`, the non-answers stopped.
+
 ## Messing with the Thermostat
 
 Now, as for API Parameters. I wanted to see how decreasing temperature (randomness) would effect the results. I turned it all the way down to 0, and something interesting happened:
