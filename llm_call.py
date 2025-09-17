@@ -35,9 +35,7 @@ class LLM(ABC):
             input_tokens: int
             output_tokens: int
 
-        conversation: dict[int, Answer] = field(
-            default_factory=dict[int, Answer]
-        )
+        conversation: dict[int, Answer] = field(default_factory=dict[int, Answer])
         input_tokens: int = 0
         output_tokens: int = 0
 
@@ -128,6 +126,7 @@ class LLM(ABC):
     def report_models() -> list[str]:
         return ["gpt-3.5-turbo", "gpt-4", "gemini-pro"]
 
+    @property
     def parallelism(self) -> int:
         return 1
 

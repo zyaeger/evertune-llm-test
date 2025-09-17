@@ -38,6 +38,7 @@ class Model(LLM):
     def known_models() -> set[str]:
         return {SUPPORTED_MODEL_INTERNAL_NAME}
 
+    @property
     def parallelism(self):
         return 100
 
@@ -113,22 +114,16 @@ class Model(LLM):
         )
         try:
             answers = self.parse_json_ranked_list(response.answer)
-            return LLM.Response(
-                answers=answers, input_tokens=0, output_tokens=0
-            )
+            return LLM.Response(answers=answers, input_tokens=0, output_tokens=0)
 
         except Exception as ex:
-            print(
-                f'Error in Together.ask_for_open_list "{response.answer}": {ex} '
-            )
+            print(f'Error in Together.ask_for_open_list "{response.answer}": {ex} ')
             return EMPTY_LIST
 
     async def ask_for_ranked_list(
         self, system_prompt: str, question: str, temperature: float
     ) -> LLM.Response:
-        return await self.ask_for_open_list(
-            system_prompt, question, temperature
-        )
+        return await self.ask_for_open_list(system_prompt, question, temperature)
 
     async def ask_for_list(
         self,

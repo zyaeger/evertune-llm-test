@@ -19,7 +19,7 @@ async def test_choice():
 @pytest.mark.asyncio
 async def test_choices_at_scale():
     model = TLlama()
-    iterations = model.parallelism() * 2
+    iterations = model.parallelism * 2
     start_time = time.perf_counter()
     counter = [0]
     stats = {"Bad": 0}
@@ -41,7 +41,7 @@ async def test_choices_at_scale():
             else:
                 stats[answer] = stats[answer] + 1
 
-    await asyncio.gather(*[run_calls(i) for i in range(0, model.parallelism())])
+    await asyncio.gather(*[run_calls(i) for i in range(0, model.parallelism)])
     results = sorted(list(stats.items()), key=lambda k: k[1], reverse=True)
     elapsed_time = time.perf_counter() - start_time
     print(
@@ -82,7 +82,7 @@ async def test_list_stats():
                 stats[answer] = stat
 
     start_time = time.perf_counter()
-    await asyncio.gather(*[run_calls(i) for i in range(0, model.parallelism())])
+    await asyncio.gather(*[run_calls(i) for i in range(0, model.parallelism)])
     elapsed_time = time.perf_counter() - start_time
     print(
         f"\nfinished {iterations} -> {iterations*len(questions)} calls in {elapsed_time:.2f} seconds"

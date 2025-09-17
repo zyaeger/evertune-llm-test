@@ -19,7 +19,7 @@ async def test_choice():
 @pytest.mark.asyncio
 async def test_choices_at_scale():
     model = Gemini()
-    iterations = model.parallelism() * 2
+    iterations = model.parallelism * 2
     counter = [0]
     stats = {"Bad": 0}
 
@@ -41,7 +41,7 @@ async def test_choices_at_scale():
                 stats[answer] = stats[answer] + 1
 
     start_time = time.perf_counter()
-    await asyncio.gather(*[run_calls(i) for i in range(0, model.parallelism())])
+    await asyncio.gather(*[run_calls(i) for i in range(0, model.parallelism)])
     results = sorted(list(stats.items()), key=lambda k: k[1], reverse=True)
     elapsed_time = time.perf_counter() - start_time
     print(
@@ -54,7 +54,7 @@ async def test_choices_at_scale():
 @pytest.mark.asyncio
 async def test_list_stats():
     model = Gemini()
-    iterations = model.parallelism()
+    iterations = model.parallelism
     questions = [
         "Which [insert written number] brands stand out to you the most in [insert product category]?",
         "When you hear [insert product category], which [insert written number] brands immediately come to your mind?",
@@ -86,14 +86,12 @@ async def test_list_stats():
                 stats[answer] = stat
 
     start_time = time.perf_counter()
-    await asyncio.gather(*[run_calls(i) for i in range(0, model.parallelism())])
+    await asyncio.gather(*[run_calls(i) for i in range(0, model.parallelism)])
     elapsed_time = time.perf_counter() - start_time
     print(
         f"\nfinished {iterations} -> {iterations*len(questions)} calls in {elapsed_time:.2f} seconds"
     )
-    print(
-        f"Requests per Minute: {iterations*len(questions) / (elapsed_time / 60):.2f}"
-    )
+    print(f"Requests per Minute: {iterations*len(questions) / (elapsed_time / 60):.2f}")
     print(f"Bad responses: {bad_responses}")
     print(
         tabulate(
@@ -104,6 +102,6 @@ async def test_list_stats():
                 )
             ],
             headers=["Brand"] + [f"#{i + 1}" for i in range(0, number)],
-            tablefmt="github", # Changed to `github` for README
+            tablefmt="github",  # Changed to `github` for README
         )
     )

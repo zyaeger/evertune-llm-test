@@ -32,6 +32,7 @@ class Model(LLM):
     def computed_model_name(self) -> str:
         return SUPPORTED_MODEL
 
+    @property
     def parallelism(self) -> int:
         return 15000
 
@@ -127,8 +128,17 @@ class Model(LLM):
             print(f"Error in Gemini: {exc}")
             return EMPTY_ANSWER
 
-    # pylint: disable=broad-exception-caught
     async def ask_for_open_list(
+        self, system_prompt: str, question: str, temperature: float
+    ) -> LLM.Response:
+        # Not sure why call stack is so long
+        # list -> ranked_list -> open_list -> generic_question
+        # Seems like overkill, I'd put some logic in ask_for_list
+        # to determine ranked vs open list and call accordingly
+        pass
+
+    # pylint: disable=broad-exception-caught
+    async def ask_for_ranked_list(
         self, system_prompt: str, question: str, temperature: float
     ) -> LLM.Response:
         result = await self.ask_generic_question(
@@ -144,13 +154,6 @@ class Model(LLM):
         except Exception as ex:
             print("Error when parsing json response:", ex)
             return EMPTY_LIST
-
-    async def ask_for_ranked_list(
-        self, system_prompt: str, question: str, temperature: float
-    ) -> LLM.Response:
-        return await self.ask_for_open_list(
-            system_prompt, question, temperature
-        )
 
     async def choice_from_pair(
         self,
