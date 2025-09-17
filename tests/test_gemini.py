@@ -13,7 +13,7 @@ async def test_choice():
     answer = await model.choice_from_pair(
         "Which car is the best - Volvo or Saab?", 1.0, 10
     )
-    print(answer)
+    print(f"\n{answer}")
 
 
 @pytest.mark.asyncio

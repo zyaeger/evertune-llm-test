@@ -43,6 +43,8 @@ class Model(LLM):
         safe_answer: str,
         temperature: float | None,
     ) -> LLM.Response:
+        # Ideally, some logic here to determine ranked vs open list
+        # and call accordingly
         result = await self.ask_for_ranked_list(
             RANKED_LIST_SYS_PROMPT, question, temperature
         )
@@ -133,7 +135,7 @@ class Model(LLM):
     ) -> LLM.Response:
         # Not sure why call stack is so long
         # list -> ranked_list -> open_list -> generic_question
-        # Seems like overkill, I'd put some logic in ask_for_list
+        # seems like overkill, I'd put some logic in ask_for_list
         # to determine ranked vs open list and call accordingly
         pass
 
